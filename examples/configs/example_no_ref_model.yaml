@@ -1,0 +1,37 @@
+# 示例配置文件：关闭参考模型
+# 将 use_reference_model 设置为 False 可以禁用参考模型，
+# 这样在计算 KL 惩罚时不会使用参考模型的 log_probs
+
+from roll.configs.base_config import PPOConfig
+from roll.configs.worker_config import WorkerConfig
+
+# 创建配置
+config = PPOConfig(
+    exp_name="example_no_ref_model",
+    use_reference_model=False,  # 关闭参考模型
+    # 其他配置...
+    pretrain="/path/to/your/model",
+    actor_train=WorkerConfig(
+        model_args=dict(model_name_or_path="/path/to/your/model"),
+        # 其他 actor_train 配置...
+    ),
+    actor_infer=WorkerConfig(
+        model_args=dict(model_name_or_path="/path/to/your/model"),
+        # 其他 actor_infer 配置...
+    ),
+    critic=WorkerConfig(
+        model_args=dict(model_name_or_path="/path/to/your/reward/model"),
+        # 其他 critic 配置...
+    ),
+    reference=WorkerConfig(
+        model_args=dict(model_name_or_path="/path/to/your/model"),
+        # 即使 use_reference_model=False，也需要提供参考模型配置
+        # 但在实际运行时不会初始化和使用参考模型
+    ),
+)
+
+# 注意：当 use_reference_model=False 时
+# 1. 不会初始化参考模型
+# 2. 不会计算参考模型的 log_probs
+# 3. KL 惩罚系数 beta 将被设置为 0
+# 4. 可以节省内存和计算资源

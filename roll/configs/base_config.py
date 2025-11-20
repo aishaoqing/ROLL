@@ -382,6 +382,7 @@ class PPOConfig(BaseConfig):
         field(default="seq-mean-token-mean", metadata={"help": "Loss aggregation mode"})
     )
     dual_clip_loss: bool = field(default=False, metadata={"help": "Use dual clip loss"})
+    use_reference_model: bool = field(default=True, metadata={"help": "Whether to use reference model for KL penalty computation"})
 
     def __post_init__(self):
         super().__post_init__()

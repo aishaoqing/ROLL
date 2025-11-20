@@ -434,7 +434,8 @@ class RLVRVLMPipeline(BasePipeline):
         refs.extend(self.actor_infer.initialize(pipeline_config=self.pipeline_config, blocking=False))
         ray.get(refs)
 
-        refs.extend(self.reference.initialize(pipeline_config=self.pipeline_config, blocking=True))
+        if self.pipeline_config.use_reference_model:
+            refs.extend(self.reference.initialize(pipeline_config=self.pipeline_config, blocking=True))
         refs = []
         for key, cluster in self.rewards.items():
             refs.extend(cluster.initialize(pipeline_config=self.pipeline_config, blocking=False))
@@ -541,12 +542,13 @@ class RLVRVLMPipeline(BasePipeline):
                 # mark here to make megatron get_data_input broadcast with non_batch_tensor
                 batch.meta_info["_broadcast_non_tensor_batch"]= True
 
-                with Timer(name="cal_ref_log_probs", logger=None) as cal_ref_log_probs_timer:
-                    ref_log_probs = self.reference.compute_log_probs(batch, blocking=True)
-                    metrics_mgr.add_reduced_metrics(ref_log_probs.meta_info.pop("metrics", {}))
-                    ref_log_probs.rename(old_keys="log_probs", new_keys="ref_log_probs")
-                    batch = batch.union(ref_log_probs)
-                metrics_mgr.add_metric("time/ref_log_probs_values", cal_ref_log_probs_timer.last)
+                if self.pipeline_config.use_reference_model:
+                    with Timer(name="cal_ref_log_probs", logger=None) as cal_ref_log_probs_timer:
+                        ref_log_probs = self.reference.compute_log_probs(batch, blocking=True)
+                        metrics_mgr.add_reduced_metrics(ref_log_probs.meta_info.pop("metrics", {}))
+                        ref_log_probs.rename(old_keys="log_probs", new_keys="ref_log_probs")
+                        batch = batch.union(ref_log_probs)
+                    metrics_mgr.add_metric("time/ref_log_probs_values", cal_ref_log_probs_timer.last)
 
                 with Timer(name="cal_old_log_probs_values", logger=None) as cal_old_logpb_timer:
                     batch.meta_info["is_offload_states"] = False
